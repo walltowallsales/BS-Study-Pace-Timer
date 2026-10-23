@@ -95,6 +95,20 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
   #plan .chip{border:1px solid #bbb!important;background:#fff!important;color:#000!important;padding:2px 4px!important;font-size:8px!important}
 }
 
+
+/* WT Study Pace Timer inspired plan: prominent targets, section bands, responsive cards */
+@media screen {
+ #plan .plan-table{border-collapse:separate;border-spacing:0 7px}
+ #plan .plan-table tbody tr:not(.plan-section){background:var(--panel,#fff);box-shadow:0 1px 5px rgba(0,0,0,.07)}
+ #plan .plan-table tbody tr:not(.plan-section) td{padding:13px 10px}
+ #plan .plan-table tbody tr:not(.plan-section) td:last-child{background:#e9f3ff;color:#1254a1;font-weight:800;font-size:1.25rem;border-left:3px solid #3184dc}
+ #plan .plan-table .plan-section td{background:#243d60!important;color:white!important;font-weight:800!important;padding:12px!important;border-radius:5px}
+ #plan .plan-table .plan-section td:last-child{font-size:1rem!important}
+}
+@media screen and (max-width:700px){
+ #plan .plan-table tbody tr:not(.plan-section) td:last-child{border:2px solid #3184dc!important;border-radius:8px!important;margin-top:7px!important;padding:10px!important}
+ #plan .plan-table tbody tr:not(.plan-section) td:last-child:before{content:'TARGET FINISH'!important;display:block!important;color:#1254a1!important;font-size:10px!important;font-weight:700!important;margin-bottom:3px}
+}
 </style>
 </head>
 <body>
@@ -283,7 +297,18 @@ function enableDragReorder(el){
    handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
  });
 }
-function renderUnits(){const el=$('lessonList');el.innerHTML='';let lastSection=null;state.units.forEach((u,i)=>{u=normalizeUnit(u);state.units[i]=u;if(u.section&&u.section!==lastSection){const h=document.createElement('div');h.className='section-divider';h.textContent=u.section;el.appendChild(h);lastSection=u.section}const d=document.createElement('div');d.className='card';d.dataset.uid=u.uid;d.innerHTML=`<div class="card-head"><div style="display:flex;gap:10px;align-items:flex-start;flex:1"><button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag paragraph ${esc(u.label)} to reorder">☰</button><div><div class="card-title">Paragraph ${esc(u.label)}</div><div class="q">${esc(u.q)}</div><div class="chips">${u.read?'<span class="chip green">Read scripture</span>':''}${u.picture?'<span class="chip gold">Picture</span>':''}${u.box?'<span class="chip gold">Box</span>':''}<span class="chip gray">${countParts(u.q)} question${countParts(u.q)>1?' parts':''}</span>${u.locked?'<span class="chip">Locked</span>':''}</div></div></div><div class="reorder-tools"><button class="move-btn" data-up="${i}" title="Move up">↑</button><button class="move-btn" data-down="${i}" title="Move down">↓</button><button class="btn danger" data-remove="${i}">Remove</button></div></div>
+function questionDisplayName(index){
+ const u=state.units[index]||{};
+ const section=String(u.section||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+ if(section.includes('for discussion'))return 'Main Question';
+ let count=0;
+ for(let j=0;j<=index;j++){
+   const other=String(state.units[j]?.section||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+   if(other===section)count++;
+ }
+ return 'Question '+count;
+}
+function renderUnits(){const el=$('lessonList');el.innerHTML='';let lastSection=null;state.units.forEach((u,i)=>{u=normalizeUnit(u);state.units[i]=u;if(u.section&&u.section!==lastSection){const h=document.createElement('div');h.className='section-divider';h.textContent=u.section;el.appendChild(h);lastSection=u.section}const d=document.createElement('div');d.className='card';d.dataset.uid=u.uid;d.innerHTML=`<div class="card-head"><div style="display:flex;gap:10px;align-items:flex-start;flex:1"><button class="drag-handle" type="button" title="Drag to reorder" aria-label="Drag paragraph ${esc(u.label)} to reorder">☰</button><div><div class="card-title">${esc(questionDisplayName(i))}</div><div class="q">${esc(u.q)}</div><div class="chips">${u.read?'<span class="chip green">Read scripture</span>':''}${u.picture?'<span class="chip gold">Picture</span>':''}${u.box?'<span class="chip gold">Box</span>':''}<span class="chip gray">${countParts(u.q)} question${countParts(u.q)>1?' parts':''}</span>${u.locked?'<span class="chip">Locked</span>':''}</div></div></div><div class="reorder-tools"><button class="move-btn" data-up="${i}" title="Move up">↑</button><button class="move-btn" data-down="${i}" title="Move down">↓</button><button class="btn danger" data-remove="${i}">Remove</button></div></div>
         <div class="card-controls"><div class="field"><label>Weight</label><select class="smallselect" data-weight="${i}"><option value="light">Light</option><option value="normal">Normal</option><option value="weighty">Weighty</option><option value="very">Very Weighty</option></select></div><label class="switch"><input type="checkbox" data-read="${i}" ${u.read?'checked':''}> Read</label><label class="switch"><input type="checkbox" data-picture="${i}" ${u.picture?'checked':''}> Picture</label><label class="switch"><input type="checkbox" data-box="${i}" ${u.box?'checked':''}> Box</label><label class="switch"><input type="checkbox" data-lock="${i}" ${u.locked?'checked':''}> Lock</label><button class="btn secondary" data-edit="${i}">Edit</button></div><button class="insert-below-btn" type="button" data-insert-below="${i}" title="Add a unit below this one" aria-label="Add unit below paragraph ${esc(u.label)}">+</button>`;el.appendChild(d);d.querySelector(`[data-weight="${i}"]`).value=u.weight});
  el.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{state.units.splice(+b.dataset.remove,1);save();renderUnits();updateMetrics();calculatePlan()});
  el.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>moveUnit(+b.dataset.up,+b.dataset.up-1));
@@ -314,7 +339,7 @@ function sectionInfoAt(idx){
  let scheduledStart=start?plan[start-1].target:0,scheduledFinish=plan[end].target;
  return {key,start,end,scheduledStart,scheduledFinish,duration:scheduledFinish-scheduledStart};
 }
-function renderPlan(){let body=$('planBody');body.innerHTML='';let lastSection=null;plan.forEach((p,idx)=>{if(p.type==='unit'&&p.section&&p.section!==lastSection){let info=sectionInfoAt(idx);let sr=document.createElement('tr');sr.className='plan-section';sr.innerHTML=`<td colspan="3">${esc(p.section)}</td><td class="num">Section target ${fmt(info.scheduledFinish)}</td>`;body.appendChild(sr);lastSection=p.section}let features=[];if(p.type==='unit'){if(p.read)features.push('Read');if(p.picture)features.push('Picture');if(p.box)features.push('Box');features.push(p.weight.replace('very','Very weighty'))}else features.push('Protected');let tr=document.createElement('tr');tr.innerHTML=`<td><b>${esc(p.label)}</b></td><td>${features.map(x=>`<span class="chip gray">${esc(x)}</span>`).join(' ')}</td><td class="num">${fmt(p.sec)}</td><td class="num">${fmt(p.plannedTarget??p.target)}</td>`;body.appendChild(tr)});$('planTotal').textContent=fmt(state.totalMin*60);$('planIntro').textContent=fmt(state.introMin*60);$('planParagraphRead').textContent=fmt(+(state.paragraphReadMin||0)*60);$('planScriptureRead').textContent=fmt(+(state.scriptureReadMin||0)*60);$('planDiscussion').textContent=fmt(state.totalMin*60-(+state.introMin + +(state.paragraphReadMin||0) + +(state.scriptureReadMin||0) + +state.reviewMin + +state.conclusionMin)*60);if($('printPlanTitle'))$('printPlanTitle').textContent=state.title||'Timing Plan'}
+function renderPlan(){let body=$('planBody');body.innerHTML='';let lastSection=null;plan.forEach((p,idx)=>{if(p.type==='unit'&&p.section&&p.section!==lastSection){let info=sectionInfoAt(idx);let sr=document.createElement('tr');sr.className='plan-section';sr.innerHTML=`<td colspan="3">${esc(p.section)}</td><td class="num">Section target ${fmt(info.scheduledFinish)}</td>`;body.appendChild(sr);lastSection=p.section}let features=[];if(p.type==='unit'){if(p.read)features.push('Read');if(p.picture)features.push('Picture');if(p.box)features.push('Box');features.push(p.weight.replace('very','Very weighty'))}else features.push('Protected');let tr=document.createElement('tr');tr.innerHTML=`<td><b>${esc(p.type==='unit'?questionDisplayName(p.unitIndex):p.label)}</b></td><td>${features.map(x=>`<span class="chip gray">${esc(x)}</span>`).join(' ')}</td><td class="num">${fmt(p.sec)}</td><td class="num">${fmt(p.plannedTarget??p.target)}</td>`;body.appendChild(tr)});$('planTotal').textContent=fmt(state.totalMin*60);$('planIntro').textContent=fmt(state.introMin*60);$('planParagraphRead').textContent=fmt(+(state.paragraphReadMin||0)*60);$('planScriptureRead').textContent=fmt(+(state.scriptureReadMin||0)*60);$('planDiscussion').textContent=fmt(state.totalMin*60-(+state.introMin + +(state.paragraphReadMin||0) + +(state.scriptureReadMin||0) + +state.reviewMin + +state.conclusionMin)*60);if($('printPlanTitle'))$('printPlanTitle').textContent=state.title||'Timing Plan'}
 function currentElapsed(){if(!session.running)return session.manualElapsed;if(session.hold)return session.manualElapsed;return session.manualElapsed+(Date.now()-session.startTs)/1000}
 function redistributeFrom(idx,elapsed){let current=plan[idx];let delta=elapsed-(idx?plan[idx-1].target:0); if(idx>=plan.length-1)return; // actual duration on current
  let targetDur=current.sec, overrun=delta-targetDur;if(Math.abs(overrun)<1)return;

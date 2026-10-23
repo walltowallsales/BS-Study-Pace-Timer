@@ -109,6 +109,40 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
  #plan .plan-table tbody tr:not(.plan-section) td:last-child{border:2px solid #3184dc!important;border-radius:8px!important;margin-top:7px!important;padding:10px!important}
  #plan .plan-table tbody tr:not(.plan-section) td:last-child:before{content:'TARGET FINISH'!important;display:block!important;color:#1254a1!important;font-size:10px!important;font-weight:700!important;margin-bottom:3px}
 }
+
+/* WT-style timing plan: compact rows, persistent checkmarks, status colors */
+@media screen and (min-width:701px){
+ #plan .plan-table{border-collapse:collapse!important;border-spacing:0!important}
+ #plan .plan-table th{padding:15px 12px!important;font-weight:800;font-size:12px!important;text-transform:uppercase}
+ #plan .plan-table th:last-child{background:#dce9fc!important;color:#203c86!important;text-align:right!important;border-left:4px solid #72a5f1}
+ #plan .plan-table tbody tr:not(.plan-section){box-shadow:none!important}
+ #plan .plan-table tbody tr:not(.plan-section) td{padding:13px 12px!important;border-bottom:1px solid #dce3ee!important}
+ #plan .plan-table tbody tr:not(.plan-section) td:last-child{background:#edf4ff!important;color:#203c86!important;border-left:4px solid #9cc3f6!important;font-size:21px!important;text-align:right!important}
+ #plan .plan-table tbody tr.plan-section td{background:#1e293b!important;color:white!important;border-radius:0!important;padding:15px!important;font-size:15px!important}
+ #plan .plan-table tr.wt-done td{background:#fee2e2!important;color:#991b1b!important}
+ #plan .plan-table tr.wt-done td:last-child{background:#991b1b!important;color:white!important;border-left-color:#991b1b!important}
+ #plan .plan-table tr.wt-current td{background:#fff3c4!important;color:#7c3b11!important}
+ #plan .plan-table tr.wt-current td:last-child{background:#fff3c4!important}
+ #plan .plan-table tr.wt-next td{background:#f1f3f7!important}
+}
+#plan .wt-check{appearance:none;width:25px;height:25px;border:2px solid #929292;border-radius:8px;vertical-align:middle;margin:0 12px 0 0;cursor:pointer;background:white;flex-shrink:0}
+#plan .wt-check:checked{background:#551010;border-color:#551010}
+#plan .wt-check:checked:after{content:'✓';color:white;font-weight:900;display:block;text-align:center;line-height:21px}
+#plan .wt-unit{display:flex;align-items:center;gap:0}
+#plan .wt-status{font-size:11px;font-weight:900;padding:5px 10px;border-radius:20px;margin-left:10px;white-space:nowrap}
+#plan .wt-current .wt-status{background:white;color:#8a3a0a;border:1px solid #a7491b}
+#plan .wt-next .wt-status{background:#16803d;color:white}
+#plan .wt-extra{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;border:2px solid #243247;border-radius:5px;font-weight:900;margin:0 4px}
+#plan .wt-section-heading{text-transform:uppercase;font-weight:900}
+#plan .wt-section-target{font-size:12px;opacity:.85}
+@media screen and (max-width:700px){
+ #plan .plan-table tr.wt-done{background:#fee2e2!important}
+ #plan .plan-table tr.wt-current{background:#fff3c4!important}
+ #plan .plan-table .wt-unit{align-items:center}
+ #plan .plan-table tr.wt-done td:last-child{background:#991b1b!important;color:white!important}
+ #plan .plan-table .plan-section td{background:#1e293b!important;color:white!important}
+}
+@media print{#plan .wt-check{appearance:auto;width:13px;height:13px;margin-right:6px}#plan .wt-status{display:none}}
 </style>
 </head>
 <body>
@@ -170,7 +204,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 
   <section id="plan" class="view hidden">
     <div class="panel">
-      <div class="row" style="justify-content:space-between"><div><h2 class="section-title" style="margin:0">Timing plan</h2><p class="hint" style="margin:4px 0 0">Fixed time is protected first; remaining time is distributed by weight and complexity.</p></div><div class="row plan-actions"><button class="btn secondary" id="printPlan">Print Timing Plan</button><button class="btn accent" id="recalculate">Recalculate</button></div></div>
+      <div class="row" style="justify-content:space-between"><div><h2 class="section-title" style="margin:0">Timing plan</h2><p class="hint" style="margin:4px 0 0">Fixed time is protected first; remaining time is distributed by weight and complexity.</p></div><div class="row plan-actions"><button class="btn secondary" type="button" onclick="wtClearChecks()">Clear all checkmarks</button><button class="btn secondary" id="printPlan">Print Timing Plan</button><button class="btn accent" id="recalculate">Recalculate</button></div></div>
       <div class="print-only print-plan-heading"><h1>Bible Study Pace Timer</h1><div id="printPlanTitle"></div></div>
       <div class="metricbar">
         <div class="metric"><div class="k">Total</div><div class="v" id="planTotal">—</div></div>
@@ -339,7 +373,47 @@ function sectionInfoAt(idx){
  let scheduledStart=start?plan[start-1].target:0,scheduledFinish=plan[end].target;
  return {key,start,end,scheduledStart,scheduledFinish,duration:scheduledFinish-scheduledStart};
 }
-function renderPlan(){let body=$('planBody');body.innerHTML='';let lastSection=null;plan.forEach((p,idx)=>{if(p.type==='unit'&&p.section&&p.section!==lastSection){let info=sectionInfoAt(idx);let sr=document.createElement('tr');sr.className='plan-section';sr.innerHTML=`<td colspan="3">${esc(p.section)}</td><td class="num">Section target ${fmt(info.scheduledFinish)}</td>`;body.appendChild(sr);lastSection=p.section}let features=[];if(p.type==='unit'){if(p.read)features.push('Read');if(p.picture)features.push('Picture');if(p.box)features.push('Box');features.push(p.weight.replace('very','Very weighty'))}else features.push('Protected');let tr=document.createElement('tr');tr.innerHTML=`<td><b>${esc(p.type==='unit'?questionDisplayName(p.unitIndex):p.label)}</b></td><td>${features.map(x=>`<span class="chip gray">${esc(x)}</span>`).join(' ')}</td><td class="num">${fmt(p.sec)}</td><td class="num">${fmt(p.plannedTarget??p.target)}</td>`;body.appendChild(tr)});$('planTotal').textContent=fmt(state.totalMin*60);$('planIntro').textContent=fmt(state.introMin*60);$('planParagraphRead').textContent=fmt(+(state.paragraphReadMin||0)*60);$('planScriptureRead').textContent=fmt(+(state.scriptureReadMin||0)*60);$('planDiscussion').textContent=fmt(state.totalMin*60-(+state.introMin + +(state.paragraphReadMin||0) + +(state.scriptureReadMin||0) + +state.reviewMin + +state.conclusionMin)*60);if($('printPlanTitle'))$('printPlanTitle').textContent=state.title||'Timing Plan'}
+const wtCheckKey='bibleStudyTimingChecks_v15';
+let wtChecked=new Set();
+let wtRestored=false;
+function wtRestoreChecks(){try{const obj=JSON.parse(localStorage.getItem(wtCheckKey)||'{}');if(obj.title===state.title && obj.count===plan.length)wtChecked=new Set(obj.checked||[]);else wtChecked=new Set()}catch(e){wtChecked=new Set()}}
+function wtSaveChecks(){localStorage.setItem(wtCheckKey,JSON.stringify({title:state.title,count:plan.length,checked:[...wtChecked]}))}
+function wtClearChecks(){wtChecked.clear();wtSaveChecks();renderPlan()}
+function wtSetCheck(idx,checked){if(checked)wtChecked.add(idx);else wtChecked.delete(idx);wtSaveChecks();renderPlan()}
+function renderPlan(){
+ if(!wtRestored){wtRestoreChecks();wtRestored=true}
+ const body=$('planBody');body.innerHTML='';
+ const firstPending=plan.findIndex((p,i)=>p.type==='unit'&&!wtChecked.has(i));
+ const nextPending=plan.findIndex((p,i)=>p.type==='unit'&&i>firstPending&&!wtChecked.has(i));
+ let lastSection=null;
+ plan.forEach((p,idx)=>{
+  if(p.type==='unit'&&p.section&&p.section!==lastSection){
+   const sr=document.createElement('tr');sr.className='plan-section';
+   sr.innerHTML=`<td colspan="4"><span class="wt-section-heading">${esc(p.section)}</span></td>`;
+   body.appendChild(sr);lastSection=p.section;
+  }
+  const tr=document.createElement('tr');
+  const done=wtChecked.has(idx),current=p.type==='unit'&&idx===firstPending,next=p.type==='unit'&&idx===nextPending;
+  if(done)tr.classList.add('wt-done');else if(current)tr.classList.add('wt-current');else if(next)tr.classList.add('wt-next');
+  const title=p.type==='unit'?questionDisplayName(p.unitIndex):p.label;
+  const marker=done?'':current?'<span class="wt-status">CURRENT</span>':next?'<span class="wt-status">NEXT UP</span>':'';
+  const checkbox=p.type==='unit'?`<input class="wt-check" type="checkbox" data-wt-index="${idx}" aria-label="Completed ${esc(title)}" ${done?'checked':''}>`:'';
+  let features=p.type==='unit'?[
+    p.read?'<span class="wt-extra" title="Read scripture">S</span>':'',
+    p.picture?'<span class="wt-extra" title="Picture">P</span>':'',
+    p.box?'<span class="wt-extra" title="Box">B</span>':''
+  ].filter(Boolean).join(''):'<span class="chip gray">Protected</span>';
+  if(p.type==='unit'&&!features)features='<span class="subtle">—</span>';
+  tr.innerHTML=`<td><div class="wt-unit">${checkbox}<b>${esc(title)}${p.type==='unit'?' - '+esc(p.weight==='very'?'Very Weighty':p.weight.charAt(0).toUpperCase()+p.weight.slice(1)):''}</b>${marker}</div></td><td>${features}</td><td class="num">${fmt(p.sec)}</td><td class="num">${fmt(p.plannedTarget??p.target)}</td>`;
+  body.appendChild(tr);
+ });
+ body.querySelectorAll('[data-wt-index]').forEach(el=>el.addEventListener('change',()=>wtSetCheck(Number(el.dataset.wtIndex),el.checked)));
+ $('planTotal').textContent=fmt(state.totalMin*60);$('planIntro').textContent=fmt(state.introMin*60);
+ $('planParagraphRead').textContent=fmt(+(state.paragraphReadMin||0)*60);
+ $('planScriptureRead').textContent=fmt(+(state.scriptureReadMin||0)*60);
+ $('planDiscussion').textContent=fmt(state.totalMin*60-(+state.introMin + +(state.paragraphReadMin||0) + +(state.scriptureReadMin||0) + +state.reviewMin + +state.conclusionMin)*60);
+ if($('printPlanTitle'))$('printPlanTitle').textContent=state.title||'Timing Plan';
+}
 function currentElapsed(){if(!session.running)return session.manualElapsed;if(session.hold)return session.manualElapsed;return session.manualElapsed+(Date.now()-session.startTs)/1000}
 function redistributeFrom(idx,elapsed){let current=plan[idx];let delta=elapsed-(idx?plan[idx-1].target:0); if(idx>=plan.length-1)return; // actual duration on current
  let targetDur=current.sec, overrun=delta-targetDur;if(Math.abs(overrun)<1)return;
